@@ -5,7 +5,8 @@ import styles from "./Feedback.module.css";
  * Presentational props: the encoded sub-viewmodel plus the two client hooks
  * the connected view supplies. Keeping `dispatch`/`isPending` as explicit
  * props keeps this file free of client state, so it stays renderable outside
- * the action (previews, tests).
+ * the action (previews, tests). `dispatch` takes no arguments: the reveal
+ * carries no client state, so the submit body is irrelevant.
  *
  * @example
  * import { Feedback } from "./Feedback.view.tsx";
@@ -14,7 +15,7 @@ import styles from "./Feedback.module.css";
  * // <Feedback {...encoded} dispatch={() => {}} isPending={false} />
  */
 export type FeedbackProps = typeof FeedbackViewModel.Encoded & {
-  readonly dispatch: (formData: FormData) => void;
+  readonly dispatch: () => void;
   readonly isPending: boolean;
 };
 

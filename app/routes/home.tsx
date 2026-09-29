@@ -5,7 +5,7 @@ import { appDepsContext } from "../../server/deps.ts";
 import { greetingCard } from "../components/GreetingCard/GreetingCard.controller.ts";
 import { GreetingCard } from "../components/GreetingCard/GreetingCard.view.tsx";
 import type { FeedbackViewModel } from "../components/Feedback/Feedback.model.ts";
-import { revealFromClient } from "../components/Feedback/Feedback.controller.ts";
+import { reveal } from "../components/Feedback/Feedback.controller.ts";
 
 /**
  * The home route's data: the greeting card, built by the same Effect program
@@ -32,33 +32,19 @@ export async function loader({ context }: Route.LoaderArgs) {
  * The reveal action: the route mutation, replacing the Next version's
  * server action.
  *
- * Receives the previous `FeedbackViewModel` round-tripped through the form
- * (the connected view serializes it to JSON under `model`), runs the same
- * `revealFromClient` program against the request's context - so the reveal
- * reads the very `Incrementer` the loader's greeting bumped - and answers
- * with the next model. The program is total: failures arrive as the `Failed`
- * view model, never as a thrown action.
+ * The reveal needs nothing from the submitted form: the secret is a
+ * function of the server's own state, not of client state, so the action
+ * ignores the request body and runs the `reveal` program against the
+ * request's context - reading the very `Incrementer` the loader's greeting
+ * bumped - and answers with the revealed model.
  *
  * @example
- * // The connected view submits the current model as JSON under `model`;
- * // the action answers with the next one:
- * //   fetcher.submit(formData, { method: "post" })
+ * // The hydrated view POSTs an (empty) form through a fetcher; the action
+ * // answers with the revealed model regardless of what was submitted:
+ * //   fetcher.submit(new FormData(), { method: "post", action })
  */
-export async function action({ request, context }: Route.ActionArgs) {
-  const formData = await request.formData();
-  const raw = formData.get("model");
-  let prev: unknown = raw;
-  if (typeof raw === "string") {
-    try {
-      prev = JSON.parse(raw) as unknown;
-    } catch {
-      // Leave it as the raw string; revealFromClient's decode reports it
-      // as the Failed view model.
-    }
-  }
-  const next = await Effect.runPromiseWith(context.get(appDepsContext))(
-    revealFromClient(prev),
-  );
+export async function action({ context }: Route.ActionArgs) {
+  const next = await Effect.runPromiseWith(context.get(appDepsContext))(reveal);
   return data(next);
 }
 
