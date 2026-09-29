@@ -1,6 +1,5 @@
 import { NodeRuntime } from "@effect/platform-node";
-import { Effect, Layer, Match } from "effect";
-import { HttpRouter } from "effect/unstable/http";
+import { Effect, Layer, ManagedRuntime, Match } from "effect";
 import { Greeter } from "./domain/greeter.ts";
 import { Incrementer } from "./domain/incrementer.ts";
 import { AppConfig, Mode } from "./server/config.ts";
@@ -11,10 +10,10 @@ import { serveApp } from "./server/pipeline.ts";
  * The React Router-only entry point: pages through the Effect server, no
  * API.
  *
- * Reads `AppConfig` from the environment, chooses the React Router
- * composition the mode names, provides the configured `Greeter` and its
- * `greeting-count` `Incrementer`, then launches the served app until
- * interrupted. No API routes (`/health`, `/docs`) exist here; unmatched
+ * Reads `AppConfig` from the environment, makes the configured `Greeter` and
+ * its `greeting-count` `Incrementer` into one `ManagedRuntime`, chooses the
+ * React Router composition the mode names, then launches the served app
+ * until interrupted. No API routes (`/health`, `/docs`) exist here; unmatched
  * routes render through React Router.
  *
  * @example
@@ -30,22 +29,28 @@ if (import.meta.main) {
   const AppLayer = Layer.unwrap(
     Effect.gen(function* () {
       const { mode, language, port } = yield* AppConfig;
+      // Composition root: one ManagedRuntime owning the greeter and its
+      // "greeting-count" Incrementer; loaders receive it as React Router's
+      // load context. Disposal rides on the app layer's scope.
+      const runtime = yield* Effect.acquireRelease(
+        Effect.sync(() =>
+          ManagedRuntime.make(
+            Layer.provideMerge(
+              Greeter.layerFor(language),
+              Incrementer.greetingCountLayer,
+            ),
+          ),
+        ),
+        (runtime) => runtime.disposeEffect,
+      );
       // The entry point is where MODE becomes a choice, made exhaustively:
       // a new mode without a branch here is a compile error.
       const reactRouter = Match.value(mode).pipe(
-        Match.when(Mode.Production, () => layerProd),
-        Match.when(Mode.Development, () => layerDev),
+        Match.when(Mode.Production, () => layerProd(runtime)),
+        Match.when(Mode.Development, () => layerDev(runtime)),
         Match.exhaustive,
       );
-      // Composition root: wire the greeter's "greeting-count" Incrementer.
-      // provideMerge keeps the counter in the request context too, so
-      // loaders read the very instance the greeter bumps.
-      const greeter = Layer.provideMerge(
-        Greeter.layerFor(language),
-        Incrementer.greetingCountLayer,
-      );
-      const appWithGreeter = HttpRouter.provideRequest(greeter)(reactRouter);
-      return serveApp(port)(appWithGreeter);
+      return serveApp(port)(reactRouter);
     }),
   );
   Layer.launch(AppLayer).pipe(NodeRuntime.runMain);

@@ -34,17 +34,20 @@ export type EffectApp<E = never, R = never> = Layer.Layer<
  * ephemeral port.
  *
  * @example
- * import { Layer } from "effect";
- * import { HttpRouter } from "effect/unstable/http";
+ * import { Layer, ManagedRuntime } from "effect";
  * import { Greeter } from "../domain/greeter.ts";
+ * import { Incrementer } from "../domain/incrementer.ts";
  * import { Language } from "./config.ts";
  * import { layerProd } from "./app.ts";
  * import { serveApp } from "./pipeline.ts";
  *
- * const app = HttpRouter.provideRequest(
- *   Greeter.layerFor(Language.English),
- * )(layerProd);
- * Layer.launch(serveApp(3456)(app));
+ * const runtime = ManagedRuntime.make(
+ *   Layer.provideMerge(
+ *     Greeter.layerFor(Language.English),
+ *     Incrementer.greetingCountLayer,
+ *   ),
+ * );
+ * Layer.launch(serveApp(3456)(layerProd(runtime)));
  */
 export const serveApp = (port: number) => <E, R>(self: EffectApp<E, R>) =>
   Layer.provideMerge(
@@ -60,17 +63,20 @@ export const serveApp = (port: number) => <E, R>(self: EffectApp<E, R>) =>
  * scenario.
  *
  * @example
- * import { Effect } from "effect";
- * import { HttpRouter } from "effect/unstable/http";
+ * import { Effect, Layer, ManagedRuntime } from "effect";
  * import { Greeter } from "../domain/greeter.ts";
+ * import { Incrementer } from "../domain/incrementer.ts";
  * import { Language } from "./config.ts";
  * import { layerProd } from "./app.ts";
  * import { startApp } from "./pipeline.ts";
  *
- * const app = HttpRouter.provideRequest(
- *   Greeter.layerFor(Language.English),
- * )(layerProd);
- * const port = yield* Effect.scoped(startApp(0)(app)); // e.g. 54321
+ * const runtime = ManagedRuntime.make(
+ *   Layer.provideMerge(
+ *     Greeter.layerFor(Language.English),
+ *     Incrementer.greetingCountLayer,
+ *   ),
+ * );
+ * const port = yield* Effect.scoped(startApp(0)(layerProd(runtime))); // e.g. 54321
  */
 export const startApp = (port: number) => <E, R>(self: EffectApp<E, R>) =>
   Effect.gen(function* () {

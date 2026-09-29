@@ -8,12 +8,14 @@
 > same BDD features, different render side.
 
 The question: can a React Router app run **inside a standard Effect HTTP
-server** — one router, one runtime, one request context? The answer
-demonstrated here is yes:
+server** — one router, one runtime, one managed instance of every service?
+The answer demonstrated here is yes:
 
 ```ts
-const port = yield* layerProd
-  .pipe(HttpRouter.provideRequest(Greeter.layerFor(Language.Spanish)), startApp(0));
+const runtime = ManagedRuntime.make(
+  Layer.provideMerge(Greeter.layerFor(Language.Spanish), Incrementer.greetingCountLayer),
+);
+const port = yield* startApp(0)(layerProd(runtime));
 ```
 
 ```mermaid
@@ -46,10 +48,10 @@ sequenceDiagram
   `react-router-serve` uses). In development the same router defers to
   Vite's middleware stack, so on-demand compilation and HMR work through
   the Effect server unchanged.
-- **One request context for both worlds.** Services from
-  `HttpRouter.provideRequest` are visible to Effect handlers and — through
-  an `AsyncLocalStorage` bridge into React Router's `RouterContextProvider`
-  — to loaders and actions.
+- **One runtime for both worlds.** The composition root makes the domain
+  services into a single `ManagedRuntime`; Effect handlers resolve its
+  services per request, and the same runtime travels to loaders and actions
+  as React Router's `RouterContextProvider` load context.
 - **One contract, three consumers.** Handlers, OpenAPI/Swagger, and the BDD
   test client all derive from the same schema-first `HttpApi`
   (`server/api.ts`), so drift is a compile error.
@@ -71,9 +73,10 @@ domain/greeter.ts        Greeter service and its layerFor mapping
 server/config.ts         single source of truth: Mode/Language enums + schemas, AppConfig
 server/api.ts            the typed Api contract: HttpApi + handlers + client type
 server/apiApp.ts         standalone API app: Api routes + Swagger UI + config
-server/reactRouterApp.ts standalone RR app: layerProd/layerDev (Vite middleware in dev)
-server/reactRouter.ts    ReactRouter service + the catch-all + the context bridge
-server/deps.ts           AppDeps + the RouterContext key loaders/actions read
+server/reactRouterApp.ts the RR catch-all: layerProd/layerDev, static-then-
+                       router serving, the Vite middleware in dev, and the
+                       load-context handoff
+server/runtime.ts        AppRuntime + the RouterContext key loaders/actions read
 server/pipeline.ts       serveApp / startApp (HttpRouter.serve over NodeHttpServer)
 server/app.ts            the composed app: mergeAll(apiApp, the RR half)
 app/root.tsx             root route: HTML shell, scripts, error boundary

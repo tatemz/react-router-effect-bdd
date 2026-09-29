@@ -1,5 +1,5 @@
 import { Bdd } from "effect-bdd";
-import { Effect, Layer, Logger, References, Schema } from "effect";
+import { Effect, Layer, Logger, ManagedRuntime, References, Schema } from "effect";
 import { chromium } from "playwright";
 // The steps touch `document` only through `page.waitForFunction`, which
 // serializes the function to the browser; tsconfig's "dom" lib types it.
@@ -7,7 +7,6 @@ import {
   FetchHttpClient,
   HttpClient,
   HttpClientResponse,
-  HttpRouter,
 } from "effect/unstable/http";
 import { HttpApiClient } from "effect/unstable/httpapi";
 import { Greeter } from "../domain/greeter.ts";
@@ -83,13 +82,13 @@ const attempt = <A>(label: string, f: () => Promise<A>) =>
   });
 
 /**
- * The greeter a scenario composes: the chosen `Greeter` merged with the
- * `greeting-count` `Incrementer` page renders read.
+ * The services a scenario composes: the chosen `Greeter` merged with the
+ * `greeting-count` `Incrementer` the page renders read.
  *
  * @example
- * const greeter = greeterFor(Language.English); // Greeter + Incrementer, ready to provide
+ * const services = servicesFor(Language.English); // Greeter + Incrementer
  */
-const greeterFor = (language: Language) =>
+const servicesFor = (language: Language) =>
   Layer.provideMerge(
     Greeter.layerFor(language),
     Incrementer.greetingCountLayer,
@@ -127,19 +126,20 @@ const givenGreeterForLanguage = Bdd.given`the app is using the ${language} greet
 /**
  * The shared `When`: start the scenario's app on an ephemeral port.
  *
- * Composes the real app here (`server/app.ts`'s own primitives);
- * `startApp(0)` binds a free port, and the server lives until the
- * scenario's scope closes.
+ * Composes the real app here (`server/app.ts`'s own primitives) over a
+ * scenario-owned `ManagedRuntime`; `startApp(0)` binds a free port, and the
+ * server and runtime live until the scenario's scope closes.
  *
  * @example
  * // After the Given, the state gains { url, api } for the later steps.
  */
 const whenAppIsRunning = Bdd.when`the app is running`(
   Effect.fn("Greeting.appIsRunning")(function* (state: { readonly language: Language }) {
-    const port = yield* appLayerProd.pipe(
-      HttpRouter.provideRequest(greeterFor(state.language)),
-      startApp(0),
+    const runtime = yield* Effect.acquireRelease(
+      Effect.sync(() => ManagedRuntime.make(servicesFor(state.language))),
+      (runtime) => runtime.disposeEffect,
     );
+    const port = yield* startApp(0)(appLayerProd(runtime));
 
     const url = `http://localhost:${port}`;
     const api = yield* HttpApiClient.make(Api, { baseUrl: url });

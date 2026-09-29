@@ -91,20 +91,25 @@ export type ApiClient = HttpApiClient.ForApi<typeof Api>;
 
 /**
  * The `system` group implementation. Its `health` handler requires the
- * request-scoped `Greeter`, so the router still injects it with
- * `HttpRouter.provideRequest` exactly like the plain routes do.
+ * `Greeter` as a request marker, so the router injects it per request with
+ * `HttpRouter.provideRequest` exactly like the plain routes do; the app
+ * resolves it from the `ManagedRuntime` (see `apiAppWith` in
+ * `server/apiApp.ts`).
  *
  * @example
- * import { Layer } from "effect";
- * import { HttpApiBuilder } from "effect/unstable/httpapi";
+ * import { Layer, ManagedRuntime } from "effect";
  * import { HttpRouter } from "effect/unstable/http";
+ * import { HttpApiBuilder } from "effect/unstable/httpapi";
  * import { Greeter } from "../domain/greeter.ts";
+ * import { Incrementer } from "../domain/incrementer.ts";
  * import { Api, HealthHandlers } from "./api.ts";
- * import { Language } from "./config.ts";
  *
  * const apiLayer = HttpApiBuilder.layer(Api).pipe(Layer.provide(HealthHandlers));
+ * const runtime = ManagedRuntime.make(
+ *   Layer.provideMerge(Greeter.layerEnglish, Incrementer.greetingCountLayer),
+ * );
  * const routes = HttpRouter.provideRequest(
- *   Greeter.layerFor(Language.English),
+ *   Layer.effectContext(runtime.contextEffect),
  * )(apiLayer);
  */
 export const HealthHandlers = HttpApiBuilder.group(Api, "system", (handlers) =>

@@ -43,21 +43,20 @@ const failedFromIssue = (issue: SchemaIssue.Issue): FeedbackViewModel =>
  * server's own `Incrementer`, which is why the route action needs nothing
  * from the submitted form. Like `greetingCard`, this is the whole effect;
  * the route action is just the run-promise boundary, which supplies the
- * current request's context so the reveal reads the same `Incrementer` the
+ * app's runtime so the reveal reads the same `Incrementer` the
  * loader's greeting bumped. The count is eventually consistent, so it may
  * lag the accepted greetings; it never decreases.
  *
  * @example
- * import { Context, Effect } from "effect";
+ * import { Effect, Layer } from "effect";
  * import { Incrementer } from "../../../domain/incrementer.ts";
- * import type { AppDeps } from "../../../server/deps.ts";
  * import { reveal } from "./Feedback.controller.ts";
  *
- * const context: Context.Context<AppDeps> = Context.make(
+ * const counter = Layer.succeed(
  *   Incrementer,
  *   Incrementer.of({ increment: () => Effect.void, value: Effect.succeed(7) }),
  * );
- * const next = Effect.runSync(Effect.provide(reveal, context));
+ * const next = Effect.runSync(Effect.provide(reveal, counter));
  * // { _tag: "Revealed", message: "The secret: … at greeting #7." }
  */
 export const reveal: Effect.Effect<

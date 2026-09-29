@@ -1,7 +1,6 @@
 import { data } from "react-router";
-import { Effect } from "effect";
 import type { Route } from "./+types/home";
-import { appDepsContext } from "../../server/deps.ts";
+import { appRuntimeContext } from "../../server/runtime.ts";
 import { greetingCard } from "../components/GreetingCard/GreetingCard.controller.ts";
 import { GreetingCard } from "../components/GreetingCard/GreetingCard.view.tsx";
 import type { FeedbackViewModel } from "../components/Feedback/Feedback.model.ts";
@@ -12,10 +11,10 @@ import { reveal } from "../components/Feedback/Feedback.controller.ts";
  * the Next version ran in its server component.
  *
  * This is the run-promise boundary; `greetingCard` is the whole program, and
- * the request's Effect context (the composition root's `Greeter` and
- * `Incrementer`, carried by `server/reactRouter.ts` under `appDepsContext`)
- * is what it runs with. Reading the context outside the pipeline throws:
- * rendering outside the pipeline is a bug, not a supported mode.
+ * the app's `ManagedRuntime` (the composition root's `Greeter` and
+ * `Incrementer`, carried by `server/reactRouterApp.ts` under
+ * `appRuntimeContext`) is what it runs with. Reading the runtime outside
+ * the app throws: rendering outside the app is a bug, not a supported mode.
  *
  * @example
  * // With the app serving (pnpm start), a plain GET carries the card:
@@ -23,9 +22,7 @@ import { reveal } from "../components/Feedback/Feedback.controller.ts";
  * //   # <main id="message">Hello!</main>
  */
 export async function loader({ context }: Route.LoaderArgs) {
-  return await Effect.runPromiseWith(context.get(appDepsContext))(
-    greetingCard,
-  );
+  return await context.get(appRuntimeContext).runPromise(greetingCard);
 }
 
 /**
@@ -34,9 +31,9 @@ export async function loader({ context }: Route.LoaderArgs) {
  *
  * The reveal needs nothing from the submitted form: the secret is a
  * function of the server's own state, not of client state, so the action
- * ignores the request body and runs the `reveal` program against the
- * request's context - reading the very `Incrementer` the loader's greeting
- * bumped - and answers with the revealed model.
+ * ignores the request body and runs the `reveal` program against the app's
+ * runtime - reading the very `Incrementer` the loader's greeting bumped -
+ * and answers with the revealed model.
  *
  * @example
  * // The hydrated view POSTs an (empty) form through a fetcher; the action
@@ -44,7 +41,7 @@ export async function loader({ context }: Route.LoaderArgs) {
  * //   fetcher.submit(new FormData(), { method: "post", action })
  */
 export async function action({ context }: Route.ActionArgs) {
-  const next = await Effect.runPromiseWith(context.get(appDepsContext))(reveal);
+  const next = await context.get(appRuntimeContext).runPromise(reveal);
   return data(next);
 }
 
