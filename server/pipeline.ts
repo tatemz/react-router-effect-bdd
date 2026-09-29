@@ -78,8 +78,8 @@ export const serveApp = (port: number) => <E, R>(self: EffectApp<E, R>) =>
  * );
  * const port = yield* Effect.scoped(startApp(0)(layerProd(runtime))); // e.g. 54321
  */
-export const startApp = (port: number) => <E, R>(self: EffectApp<E, R>) =>
-  Effect.gen(function* () {
+export const startApp = (port: number) =>
+  Effect.fnUntraced(function* <E, R>(self: EffectApp<E, R>) {
     const context = yield* Layer.build(serveApp(port)(self));
     const address = Context.get(context, HttpServer.HttpServer).address;
     if (NetAddress.isInetAddress(address)) {

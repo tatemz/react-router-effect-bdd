@@ -209,9 +209,9 @@ const registerReactRouter = Effect.fn("ReactRouter.route")(function* (
  *
  * @example
  * // Inside layerDev:
- * const vite = yield* withViteDevServer(); // closed with the layer's scope
+ * const vite = yield* withViteDevServer; // closed with the layer's scope
  */
-const withViteDevServer = Effect.fn("ReactRouter.viteDevServer")(function* () {
+const withViteDevServer = Effect.gen(function* () {
   // Dynamic import keeps `vite` (a dev-only dependency) out of production.
   const { createServer } = yield* Effect.tryPromise({
     try: () => import("vite"),
@@ -234,7 +234,7 @@ const withViteDevServer = Effect.fn("ReactRouter.viteDevServer")(function* () {
     }).pipe(Effect.ignore),
   );
   return vite;
-});
+}).pipe(Effect.withSpan("ReactRouter.viteDevServer"));
 
 /**
  * The React Router app, prepared for production: everything the router does
@@ -293,7 +293,7 @@ export const layerProd = (runtime: AppRuntime) =>
 export const layerDev = (runtime: AppRuntime) =>
   HttpRouter.use((router) =>
     Effect.gen(function* () {
-      const vite = yield* withViteDevServer();
+      const vite = yield* withViteDevServer;
       yield* registerReactRouter(
         router,
         { mode: "development", vite },
