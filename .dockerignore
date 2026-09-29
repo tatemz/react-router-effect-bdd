@@ -1,0 +1,21 @@
+# Local state and generated output must not overwrite the container build.
+.git
+**/node_modules
+**/build
+**/.react-router
+**/coverage
+**/*.tsbuildinfo
+**/*.log
+**/.DS_Store
+.zed
+.github
+
+# Supply secrets at runtime (or via BuildKit secrets), never in the context.
+**/.env*
+**/.npmrc
+**/*.pem
+**/*.key
+
+# Not needed to compile or run the production app.
+README.md
+features

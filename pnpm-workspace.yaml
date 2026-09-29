@@ -1,0 +1,22 @@
+# Isolate this repo: no ancestor workspace may absorb it.
+packages: []
+
+overrides:
+  # rc.118 of the shared package imports newer effect internals than the
+  # rc.117 pin this POC runs on; keep it aligned.
+  "@effect/platform-node-shared": "4.0.0-rc.117"
+
+allowBuilds:
+  # tsx bundles esbuild, which needs its postinstall to unpack the binary.
+  esbuild: true
+
+minimumReleaseAgeExclude:
+  - effect-bdd@0.9.3
+  - '@effect/tsgo-darwin-arm64@0.46.1'
+  - '@effect/tsgo-darwin-x64@0.46.1'
+  - '@effect/tsgo-linux-arm64@0.46.1'
+  - '@effect/tsgo-linux-arm@0.46.1'
+  - '@effect/tsgo-linux-x64@0.46.1'
+  - '@effect/tsgo-win32-arm64@0.46.1'
+  - '@effect/tsgo-win32-x64@0.46.1'
+  - '@effect/tsgo@0.46.1'
