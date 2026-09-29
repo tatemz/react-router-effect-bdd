@@ -1,0 +1,154 @@
+/* Home page hero. `main#message` is styled via the descendant selector
+ * because the BDD scenario pins its exact markup (`<main id="message">…`),
+ * so it must stay free of attributes (including hashed module classes). */
+
+.page {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  padding: 2rem;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+/* Soft aurora glow drifting behind the card. */
+.page::before {
+  content: "";
+  position: absolute;
+  inset: -40%;
+  z-index: -2;
+  background:
+    radial-gradient(28rem 28rem at 30% 35%, rgba(99, 102, 241, 0.28), transparent 60%),
+    radial-gradient(24rem 24rem at 70% 60%, rgba(56, 189, 248, 0.2), transparent 60%),
+    radial-gradient(20rem 20rem at 55% 25%, rgba(232, 121, 249, 0.14), transparent 60%);
+  filter: blur(48px);
+  animation: drift 26s ease-in-out infinite alternate;
+}
+
+/* Faint dot grid, faded toward the edges with a vignette mask. */
+.page::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: radial-gradient(rgba(148, 163, 184, 0.14) 1px, transparent 1.6px);
+  background-size: 26px 26px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 45%, black 30%, transparent 75%);
+}
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.75rem;
+  padding: clamp(2.5rem, 8vw, 4.5rem) clamp(2rem, 10vw, 6rem);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 1.75rem;
+  background: linear-gradient(165deg, rgba(30, 41, 59, 0.55), rgba(2, 6, 23, 0.65));
+  box-shadow:
+    0 1px 0 rgba(226, 232, 240, 0.06) inset,
+    0 40px 80px -32px rgba(2, 6, 23, 0.9);
+  backdrop-filter: blur(16px);
+  animation: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Hairline gradient frame highlight. */
+.card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(140deg, rgba(129, 140, 248, 0.55), transparent 40%, rgba(56, 189, 248, 0.35));
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.kicker {
+  margin: 0;
+  padding: 0.4rem 1rem;
+  border: 1px solid rgba(129, 140, 248, 0.35);
+  border-radius: 999px;
+  background: rgba(99, 102, 241, 0.12);
+  color: #a5b4fc;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+/* The greeting — deliberately plain in markup, grand here. */
+.page main {
+  margin: 0;
+  font-size: clamp(3.5rem, 12vw, 7.5rem);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+  background: linear-gradient(115deg, #f8fafc 20%, #a5b4fc 55%, #38bdf8 90%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 12px 32px rgba(99, 102, 241, 0.35));
+}
+
+/* The incrementer's greeting count, read at render time. */
+.counter {
+  margin: -0.75rem 0 0;
+  color: #7dd3fc;
+  font-family: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+
+.caption {
+  margin: 0;
+  max-width: 34ch;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 1.02rem;
+  line-height: 1.6;
+}
+
+.caption code {
+  padding: 0.12rem 0.42rem;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 0.45rem;
+  background: rgba(15, 23, 42, 0.7);
+  color: #cbd5e1;
+  font-family: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+  font-size: 0.86em;
+}
+
+@keyframes drift {
+  from {
+    transform: translate3d(-3%, -2%, 0) scale(1);
+  }
+  to {
+    transform: translate3d(3%, 2%, 0) scale(1.08);
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(1.5rem) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page::before,
+  .card {
+    animation: none;
+  }
+}
